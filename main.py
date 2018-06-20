@@ -3,8 +3,10 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
 import signal
 import subprocess
+import time
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -23,17 +25,15 @@ class Indicator(object):
     SYNC_COMMAND = ['counter']
     GUI_COMMAND = "unison-gtk"
 
-    ICON_GOOD  = "icons/color.svg"
     ICON_WAIT  = "icons/gray.svg"
+    ICON_GOOD  = "icons/color.svg"
     ICON_SYNC  = "icons/sync.svg"
     ICON_ERROR = "icons/error.svg"
 
     RE_IDLE     = 'Nothing to do: replicas have not changed since last sync.'
     RE_START    = r'started propagating.* (\d+[^)]*)'
     RE_COMPLETE = r'Synchronization complete.* \((\d+[^)]*)\)'
-    RE_COPIED   = r'\[END\]\s+Copying\s+(.*/)*([^/]+)'
-    RE_DELETED  = r'\[END\]\s+Deleting\s+(.*/)*([^/]+)'
-    RE_UPDATING = r'\[END\]\s+Updating file\s+(.*/)*([^/]+)'
+    RE_FILE     = r'\[END\]\s+(\w+)ing\s+(.*/)*([^/]+)'
 
     def __init__(self):
         # Create indicator
@@ -47,14 +47,16 @@ class Indicator(object):
         # Unison is not paused at the beggining
         self.paused = False
 
+        # Empty recent files list
+        self.empty_recent_files = True
+
         # Launch unison in the background
         self.unison_pid = self.start_unison()
 
+        self.add_file_to_list('DEL', 'hoooooola')
+
         # Gtk event loop
         Gtk.main()
-
-    def set_icon(self, icon):
-        GLib.idle_add(self.indicator.set_icon, os.path.abspath(icon))
 
     def build_menu(self):
         """Build indicator menu"""
@@ -71,11 +73,19 @@ class Indicator(object):
         menu.append(item_launch_gui)
 
         # Recently changed files
-        menu_file_list = Gtk.Menu()
-        menu_file_list.append(Gtk.MenuItem('--'))
+        self.menu_recent_files = Gtk.Menu()
+        self.menu_recent_files.append(Gtk.MenuItem('--'))
         item_file_list = Gtk.MenuItem('Recently changed files')
-        item_file_list.set_submenu(menu_file_list)
+        item_file_list.set_submenu(self.menu_recent_files)
         menu.append(item_file_list)
+
+        menu.append(Gtk.SeparatorMenuItem())
+
+        # Disabled message
+        self.item_message = Gtk.MenuItem('Message')
+        self.item_message.set_sensitive(False)
+
+        menu.append(self.item_message)
 
         menu.append(Gtk.SeparatorMenuItem())
 
@@ -96,6 +106,12 @@ class Indicator(object):
         # Show menu
         menu.show_all()
         return menu
+
+    def set_icon(self, icon):
+        GLib.idle_add(self.indicator.set_icon, os.path.abspath(icon))
+
+    def set_message(self, message):
+        self.item_message.get_child().set_text(message)
 
     # Start unison
 
@@ -134,11 +150,35 @@ class Indicator(object):
     # Parse Unison output
 
     def _on_stderr(self, fobj, cond):
-        print("stderr", fobj.readline(), end='')
+        line = fobj.readline()
+        print("stderr", line, end='')
+        m = re.match(RE_FILE, line)
+        if m:
+            print(m.group())
         return True
 
     def _on_done(self, pid, retval, *argv):
         print('Process done')
+
+    def add_file_to_list(self, verb, fname):
+        # If the list is empty, remove the first item
+        if self.empty_recent_files:
+            self.menu_recent_files.remove(
+                self.menu_recent_files.get_children()[0])
+            self.empty_recent_files = False
+
+        if len(fname) > 50:
+            fname = fname[:24] + '...' + fname[-24:]
+
+        line = '[%s] [%s] %s' % (time.strftime("%H:%M"), verb, fname)
+
+        item = Gtk.MenuItem(line)
+        self.menu_recent_files.append(item)
+
+        if len(self.menu_recent_files.get_children()) > 20:
+            self.menu_recent_files.remove(
+                self.menu_recent_files.get_children()[-1])
+        self.menu_recent_files.show_all()
 
     # Animated syncing icon
 
