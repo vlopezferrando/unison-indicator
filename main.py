@@ -11,10 +11,12 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
 from gi.repository import Gtk, AppIndicator3, GObject, GLib
 
-# https://gist.github.com/fabrixxm/8deb791ad0930fa209be
+
+UNISON_PROFILE = 'victor'
+
 
 class Indicator(object):
-    SYNC_COMMAND = ['unison', 'victor', '-repeat', 'watch']
+    SYNC_COMMAND = ['unison', UNISON_PROFILE, '-ui', 'text', '-repeat', 'watch', '-batch']
     SYNC_COMMAND = ['counter']
     GUI_COMMAND = "unison-gtk"
 
@@ -47,8 +49,13 @@ class Indicator(object):
         """Build indicator menu"""
         menu = Gtk.Menu()
 
+        # Open root directory
+        item_open_root = Gtk.MenuItem('Open Unison root folder')
+        item_open_root.connect('activate', self.open_root)
+        menu.append(item_open_root)
+
         # Launch GUI
-        item_launch_gui = Gtk.MenuItem('Launch GUI')
+        item_launch_gui = Gtk.MenuItem('Launch Unison GUI')
         item_launch_gui.connect('activate', self.launch_gui)
         menu.append(item_launch_gui)
 
@@ -59,22 +66,21 @@ class Indicator(object):
         item_file_list.set_submenu(menu_file_list)
         menu.append(item_file_list)
 
-        # Error log
-        menu_error_list = Gtk.Menu()
-        menu_error_list.append(Gtk.MenuItem('--'))
-        item_error_list = Gtk.MenuItem('Error log')
-        item_error_list.set_submenu(menu_error_list)
-        menu.append(item_error_list)
+        menu.append(Gtk.SeparatorMenuItem())
 
         # Stop / Start
-        item_stop_start = Gtk.MenuItem('Stop / Start')
+        item_stop_start = Gtk.MenuItem('Pause syncing')
         item_stop_start.connect('activate', self.stop_start)
         menu.append(item_stop_start)
 
+        menu.append(Gtk.SeparatorMenuItem())
+
         # Quit
-        item_quit = Gtk.MenuItem('Quit')
+        item_quit = Gtk.MenuItem('Stop Unison')
         item_quit.connect('activate', quit)
         menu.append(item_quit)
+
+        menu.append(Gtk.SeparatorMenuItem())
 
         # Show menu
         menu.show_all()
@@ -130,6 +136,12 @@ class Indicator(object):
 
     def stop_start(self):
         print('Stop-start')
+
+    # Open root folder
+
+    def open_root(self, item):
+        subprocess.run('xdg-open ', shell=True, check=True)
+
 
     # Launch GUI
 

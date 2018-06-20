@@ -1,0 +1,53 @@
+Contacting server...
+Connected [//cubi//media/victor/3feb3489-ab51-42e3-8821-bae08f7457b8/sync -> //raspberrypi//media/canvio_3tb/sync]
+Looking for changes
+  Waiting for changes from server
+Reconciling changes
+Nothing to do: replicas have not changed since last sync.
+Looking for changes
+  Waiting for changes from server
+Reconciling changes
+Propagating updates
+UNISON 2.48.3 started propagating changes at 20:03:35.11 on 20 Jun 2018
+[BGN] Copying Document sense nom from /media/victor/3feb3489-ab51-42e3-8821-bae08f7457b8/sync to //raspberrypi//media/canvio_3tb/sync
+Shortcut: copied /media/canvio_3tb/sync/Document sense nom from local file /media/canvio_3tb/sync/Zotero/storage/JHYEKMLE/.zotero-ft-info
+[END] Copying Document sense nom
+UNISON 2.48.3 finished propagating changes at 20:03:35.13 on 20 Jun 2018
+Saving synchronizer state
+Synchronization complete at 20:03:35  (1 item transferred, 0 skipped, 0 failed)
+Looking for changes
+  Waiting for changes from server
+Reconciling changes
+Nothing to do: replicas have not changed since last sync.
+Looking for changes
+  Waiting for changes from server
+Reconciling changes
+Propagating updates
+UNISON 2.48.3 started propagating changes at 20:03:37.46 on 20 Jun 2018
+[BGN] Copying bla from /media/victor/3feb3489-ab51-42e3-8821-bae08f7457b8/sync to //raspberrypi//media/canvio_3tb/sync
+Shortcut: copied /media/canvio_3tb/sync/bla from local file /media/canvio_3tb/sync/Document sense nom
+[END] Copying bla
+[BGN] Deleting Document sense nom from //raspberrypi//media/canvio_3tb/sync
+[END] Deleting Document sense nom
+UNISON 2.48.3 finished propagating changes at 20:03:37.47 on 20 Jun 2018
+Saving synchronizer state
+Synchronization complete at 20:03:37  (2 items transferred, 0 skipped, 0 failed)
+Looking for changes
+  Waiting for changes from server
+Reconciling changes
+Nothing to do: replicas have not changed since last sync.
+Looking for changes
+  Waiting for changes from server
+Reconciling changes
+Propagating updates
+UNISON 2.48.3 started propagating changes at 20:03:42.50 on 20 Jun 2018
+[BGN] Deleting bla from //raspberrypi//media/canvio_3tb/sync
+[END] Deleting bla
+UNISON 2.48.3 finished propagating changes at 20:03:42.50 on 20 Jun 2018
+Saving synchronizer state
+Synchronization complete at 20:03:42  (1 item transferred, 0 skipped, 0 failed)
+Looking for changes
+  Waiting for changes from server
+Reconciling changes
+Nothing to do: replicas have not changed since last sync.
+Terminated!
