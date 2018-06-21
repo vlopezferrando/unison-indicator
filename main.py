@@ -82,10 +82,10 @@ class Indicator(object):
 
         # Recently changed files
         self.menu_recent_files = Gtk.Menu()
-        self.menu_recent_files.append(Gtk.MenuItem('--'))
-        item_file_list = Gtk.MenuItem('Recently changed files')
-        item_file_list.set_submenu(self.menu_recent_files)
-        menu.append(item_file_list)
+        self.item_file_list = Gtk.MenuItem('Recently changed files')
+        self.item_file_list.set_submenu(self.menu_recent_files)
+        self.item_file_list.set_sensitive(False)
+        menu.append(self.item_file_list)
 
         menu.append(Gtk.SeparatorMenuItem())
 
@@ -120,10 +120,10 @@ class Indicator(object):
 
     def set_message(self, message):
         GLib.idle_add(self.item_message.get_child().set_text,
-                      '[%s] %s' % (time.strftime("%H:%M"), message))
+                      '[%s] %s' % (time.strftime("%H:%M:%S"), message))
 
-    def set_open_root_sensitive(self, value):
-        GLib.idle_add(self.item_open_root.set_sensitive, value)
+    def set_item_sensitivity(self, item, value):
+        GLib.idle_add(item.set_sensitive, value)
 
 
     # Start unison
@@ -174,7 +174,7 @@ class Indicator(object):
                 if k == 'connected':
                     self.set_message('Connected')
                     self.root = m.group(1)
-                    self.set_open_root_sensitive(True)
+                    self.set_item_sensitivity(self.item_open_root, True)
                 if k == 'looking':
                     self.set_message('Looking for changes')
                 if k == 'nothing':
@@ -196,11 +196,7 @@ class Indicator(object):
         print('Process done')
 
     def add_file_to_list(self, verb, fname):
-        # If the list is empty, remove the first item
-        if self.empty_recent_files:
-            self.menu_recent_files.remove(
-                self.menu_recent_files.get_children()[0])
-            self.empty_recent_files = False
+        self.set_item_sensitivity(self.item_file_list, True)
 
         if len(fname) > 50:
             fname = fname[:24] + '...' + fname[-24:]
