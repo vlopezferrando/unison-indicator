@@ -55,9 +55,6 @@ class Indicator(object):
         # Unison is not paused at the beggining
         self.paused = False
 
-        # Empty recent files list
-        self.empty_recent_files = True
-
         # Launch unison in the background
         self.unison_pid = self.start_unison()
 
@@ -161,9 +158,6 @@ class Indicator(object):
         os.kill(self.unison_pid,
                 signal.SIGCONT if self.paused else signal.SIGTSTP)
         self.paused = not self.paused
-        GLib.idle_add(self.set_start_unison_label)
-
-    def set_start_unison_label(self):
         self.set_item_text(self.item_pause_resume,
                            '%s Unison' % 'Resume' if self.paused else 'Pause')
 
