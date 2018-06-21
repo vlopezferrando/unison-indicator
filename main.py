@@ -25,8 +25,8 @@ class Indicator(object):
     SYNC_COMMAND = ['counter']
     GUI_COMMAND = "unison-gtk"
 
-    ICON_WAIT = "icons/gray.svg"
-    ICON_GOOD = "icons/color.svg"
+    ICON_WAIT = "icons/white.svg"
+    ICON_GOOD = "icons/gray.svg"
     ICON_SYNC = "icons/sync%d.svg"
     ICON_ERROR = "icons/error.svg"
 
