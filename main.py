@@ -27,7 +27,7 @@ class Indicator(object):
 
     ICON_WAIT = "icons/gray.svg"
     ICON_GOOD = "icons/color.svg"
-    ICON_SYNC = "icons/sync.svg"
+    ICON_SYNC = "icons/sync%d.svg"
     ICON_ERROR = "icons/error.svg"
 
     RES = [
@@ -182,10 +182,10 @@ class Indicator(object):
                     self.set_icon(self.ICON_GOOD)
                 if k == 'propagating':
                     self.set_message('Started propagating changes')
-                    self.start_syncing_icon()
+                    self.syncing_icon_start()
                 if k == 'sync_complete':
                     self.set_message('Synchronization completed')
-                    self.stop_syncing_icon()
+                    self.syncing_icon_stop()
                     self.set_icon(self.ICON_WAIT)
                 if k == 'end_file':
                     self.add_file_to_list(self.VERBS[m.group(1)], m.group(2))
@@ -217,20 +217,19 @@ class Indicator(object):
 
     # Animated syncing icon
 
-    def start_syncing_icon(self):
-        self.sync_icon = True
+    def syncing_icon_start(self):
+        self.syncing_icon_value = True
         self.is_syncing = True
-        self.flip_syncing_icon()
+        self.syncing_icon_flip()
 
-    def stop_syncing_icon(self):
+    def syncing_icon_stop(self):
         self.is_syncing = False
 
-    def flip_syncing_icon(self):
+    def syncing_icon_flip(self):
         if self.is_syncing:
-            self.sync_icon = not self.sync_icon
-            self.set_icon(self.ICON_SYNC.replace(
-                'sync', 'sync%d' % (1 + self.sync_icon)))
-            GLib.timeout_add_seconds(1, self.flip_syncing_icon)
+            self.syncing_icon_value = not self.syncing_icon_value
+            self.set_icon(self.ICON_SYNC % (1 + self.syncing_icon_value))
+            GLib.timeout_add_seconds(1, self.syncing_icon_flip)
 
     # Open root folder
 
