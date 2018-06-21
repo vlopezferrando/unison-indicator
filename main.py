@@ -11,7 +11,7 @@ import time
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
-from gi.repository import Gtk, AppIndicator3, GObject, GLib
+from gi.repository import Gtk, AppIndicator3, GLib
 
 
 UNISON_PROFILE = 'victor'
@@ -25,24 +25,33 @@ class Indicator(object):
     SYNC_COMMAND = ['counter']
     GUI_COMMAND = "unison-gtk"
 
-    ICON_WAIT  = "icons/gray.svg"
-    ICON_GOOD  = "icons/color.svg"
-    ICON_SYNC  = "icons/sync.svg"
+    ICON_WAIT = "icons/gray.svg"
+    ICON_GOOD = "icons/color.svg"
+    ICON_SYNC = "icons/sync.svg"
     ICON_ERROR = "icons/error.svg"
 
-    RE_IDLE     = 'Nothing to do: replicas have not changed since last sync.'
-    RE_START    = r'started propagating.* (\d+[^)]*)'
-    RE_COMPLETE = r'Synchronization complete.* \((\d+[^)]*)\)'
-    RE_FILE     = r'\[END\]\s+(\w+)ing\s+(.*/)*([^/]+)'
+    RES = [
+        ('connected', r'Connected \[\/\/.*?\/(.*) -> .*\]'),
+        ('looking', r'Looking for changes'),
+        ('nothing', r'Nothing to do: .* not changed since last sync.'),
+        ('propagating', r'.*arted propagating changes at ([\d:]+).* on (.*)'),
+        ('sync_complete', r'(Synchronization complete at [:\d]+)\s*\((.*)\)'),
+        ('end_file', r'\[END\]\s+(\w+)ing\s+(.*)'),
+    ]
+    VERBS = {'Copy': 'Copied', 'Delet': 'Deleted', 'Updat': 'Updated'}
+
 
     def __init__(self):
         # Create indicator
         self.indicator = AppIndicator3.Indicator.new(
             'unison-indicator',
             os.path.abspath(self.ICON_WAIT),
-            AppIndicator3.IndicatorCategory.SYSTEM_SERVICES)
+            AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
         self.indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
         self.indicator.set_menu(self.build_menu())
+
+        # Unison root is unknown at the beggining
+        self.root = ''
 
         # Unison is not paused at the beggining
         self.paused = False
@@ -53,8 +62,6 @@ class Indicator(object):
         # Launch unison in the background
         self.unison_pid = self.start_unison()
 
-        self.add_file_to_list('DEL', 'hoooooola')
-
         # Gtk event loop
         Gtk.main()
 
@@ -63,9 +70,10 @@ class Indicator(object):
         menu = Gtk.Menu()
 
         # Open root directory
-        item_open_root = Gtk.MenuItem('Open Unison root folder')
-        item_open_root.connect('activate', self.open_root)
-        menu.append(item_open_root)
+        self.item_open_root = Gtk.MenuItem('Open Unison root folder')
+        self.item_open_root.connect('activate', self.open_root)
+        self.item_open_root.set_sensitive(False)
+        menu.append(self.item_open_root)
 
         # Launch GUI
         item_launch_gui = Gtk.MenuItem('Launch Unison GUI')
@@ -82,7 +90,7 @@ class Indicator(object):
         menu.append(Gtk.SeparatorMenuItem())
 
         # Disabled message
-        self.item_message = Gtk.MenuItem('Message')
+        self.item_message = Gtk.MenuItem('Not connected')
         self.item_message.set_sensitive(False)
 
         menu.append(self.item_message)
@@ -111,29 +119,37 @@ class Indicator(object):
         GLib.idle_add(self.indicator.set_icon, os.path.abspath(icon))
 
     def set_message(self, message):
-        self.item_message.get_child().set_text(message)
+        GLib.idle_add(self.item_message.get_child().set_text,
+                      '[%s] %s' % (time.strftime("%H:%M"), message))
+
+    def set_open_root_sensitive(self, value):
+        GLib.idle_add(self.item_open_root.set_sensitive, value)
+
 
     # Start unison
 
     def start_unison(self):
         pid, _, idout, iderr = GLib.spawn_async(
             self.SYNC_COMMAND,
-            flags=GLib.SPAWN_DO_NOT_REAP_CHILD
-                | GLib.SPAWN_SEARCH_PATH,
+            flags=(GLib.SPAWN_DO_NOT_REAP_CHILD |
+                   GLib.SPAWN_SEARCH_PATH |
+                   GLib.SPAWN_STDOUT_TO_DEV_NULL),
             standard_output=None,
             standard_error=True)
 
-        ferr = os.fdopen(iderr, 'r')
-
         GLib.child_watch_add(pid, self._on_done)
-        GLib.io_add_watch(ferr, GLib.IO_IN, self._on_stderr)
+        GLib.io_add_watch(os.fdopen(iderr, 'r'), GLib.IO_IN, self._on_stderr)
 
         return pid
 
     # Stop Unison
 
     def stop_unison(self):
-        os.kill(self.unison_pid, signal.SIGTERM)
+        try:
+            os.kill(self.unison_pid, signal.SIGTERM)
+        except ProcessLookupError:
+            print('Unison process not found')
+
 
     # Pause / Resume Unison
 
@@ -151,10 +167,29 @@ class Indicator(object):
 
     def _on_stderr(self, fobj, cond):
         line = fobj.readline()
-        print("stderr", line, end='')
-        m = re.match(RE_FILE, line)
-        if m:
-            print(m.group())
+        # print("stderr:", line, end='')
+        for k, v in self.RES:
+            m = re.match(v, line)
+            if m:
+                if k == 'connected':
+                    self.set_message('Connected')
+                    self.root = m.group(1)
+                    self.set_open_root_sensitive(True)
+                if k == 'looking':
+                    self.set_message('Looking for changes')
+                if k == 'nothing':
+                    self.set_message('Everything up to date')
+                    self.set_icon(self.ICON_GOOD)
+                if k == 'propagating':
+                    self.set_message('Started propagating changes')
+                    self.start_syncing_icon()
+                if k == 'sync_complete':
+                    self.set_message('Synchronization completed')
+                    self.stop_syncing_icon()
+                    self.set_icon(self.ICON_WAIT)
+                if k == 'end_file':
+                    self.add_file_to_list(self.VERBS[m.group(1)], m.group(2))
+
         return True
 
     def _on_done(self, pid, retval, *argv):
@@ -170,7 +205,7 @@ class Indicator(object):
         if len(fname) > 50:
             fname = fname[:24] + '...' + fname[-24:]
 
-        line = '[%s] [%s] %s' % (time.strftime("%H:%M"), verb, fname)
+        line = '[%s] %s: %s' % (time.strftime("%H:%M"), verb, fname)
 
         item = Gtk.MenuItem(line)
         self.menu_recent_files.append(item)
@@ -194,14 +229,13 @@ class Indicator(object):
         if self.is_syncing:
             self.sync_icon = not self.sync_icon
             self.set_icon(self.ICON_SYNC.replace(
-                'sync', 'sync%d' % 1 + self.sync_icon))
+                'sync', 'sync%d' % (1 + self.sync_icon)))
             GLib.timeout_add_seconds(1, self.flip_syncing_icon)
 
     # Open root folder
 
     def open_root(self, item):
-        # TODO: get unison root
-        subprocess.call('xdg-open .', shell=True)
+        subprocess.call('xdg-open %s' % self.root, shell=True)
 
     # Launch GUI
 
