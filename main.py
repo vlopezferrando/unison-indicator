@@ -40,7 +40,6 @@ class Indicator(object):
     ]
     VERBS = {'Copy': 'Copied', 'Delet': 'Deleted', 'Updat': 'Updated'}
 
-
     def __init__(self):
         # Create indicator
         self.indicator = AppIndicator3.Indicator.new(
@@ -115,16 +114,22 @@ class Indicator(object):
         menu.show_all()
         return menu
 
+    # Update Indicator UI asynchronously
+
     def set_icon(self, icon):
         GLib.idle_add(self.indicator.set_icon, os.path.abspath(icon))
 
-    def set_message(self, message):
-        GLib.idle_add(self.item_message.get_child().set_text,
-                      '[%s] %s' % (time.strftime("%H:%M:%S"), message))
+    def set_item_text(self, item, text):
+        GLib.idle_add(item.get_child().set_text, text)
 
     def set_item_sensitivity(self, item, value):
         GLib.idle_add(item.set_sensitive, value)
 
+    # Set disabled message text in menu
+
+    def set_message(self, message):
+        self.set_item_text(self.item_message,
+                           '[%s] %s' % (time.strftime("%H:%M:%S"), message))
 
     # Start unison
 
@@ -150,7 +155,6 @@ class Indicator(object):
         except ProcessLookupError:
             print('Unison process not found')
 
-
     # Pause / Resume Unison
 
     def pause_resume_unison(self, item):
@@ -160,8 +164,8 @@ class Indicator(object):
         GLib.idle_add(self.set_start_unison_label)
 
     def set_start_unison_label(self):
-        self.item_pause_resume.get_child().set_text(
-            '%s Unison' % 'Resume' if self.paused else 'Pause')
+        self.set_item_text(self.item_pause_resume,
+                           '%s Unison' % 'Resume' if self.paused else 'Pause')
 
     # Parse Unison output
 
