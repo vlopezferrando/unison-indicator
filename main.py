@@ -52,8 +52,9 @@ class Indicator(object):
         # Unison root is unknown at the beggining
         self.root = ''
 
-        # Unison is not paused at the beggining
+        # Unison is not paused nor syncing at the beggining
         self.paused = False
+        self.is_syncing = False
 
         # Launch unison in the background
         self.unison_pid = self.start_unison()
@@ -155,11 +156,22 @@ class Indicator(object):
     # Pause / Resume Unison
 
     def pause_resume_unison(self, item):
-        os.kill(self.unison_pid,
-                signal.SIGCONT if self.paused else signal.SIGTSTP)
         self.paused = not self.paused
-        self.set_item_text(self.item_pause_resume,
-                           '%s Unison' % 'Resume' if self.paused else 'Pause')
+        if self.paused:
+            self.was_syncing_when_paused = self.is_syncing
+            if self.is_syncing:
+                self.syncing_icon_stop()
+            self.set_icon(self.ICON_WAIT)
+            os.kill(self.unison_pid, signal.SIGTSTP)
+            self.set_item_text(self.item_pause_resume, 'Resume Unison')
+        else:
+            if self.was_syncing_when_paused:
+                self.syncing_icon_start()
+            else:
+                self.set_icon(self.ICON_GOOD)
+            os.kill(self.unison_pid, signal.SIGCONT)
+            self.set_item_text(self.item_pause_resume, 'Pause Unison')
+
 
     # Parse Unison output
 
