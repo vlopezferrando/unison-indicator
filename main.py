@@ -240,7 +240,7 @@ class Indicator(object):
 
     def launch_gui(self, item):
         """Launch Unison GUI. Useful to resolve conflicts or edit profile"""
-        subprocess.run(self.GUI_COMMAND, shell=True, check=True)
+        subprocess.call(self.GUI_COMMAND, shell=True)
 
     # Quit
 
