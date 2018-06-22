@@ -14,7 +14,7 @@ gi.require_version('AppIndicator3', '0.1')
 from gi.repository import Gtk, AppIndicator3, GLib
 
 
-UNISON_PROFILE = 'victor'
+UNISON_PROFILE = 'Sync'
 
 
 class Indicator(object):
@@ -22,7 +22,6 @@ class Indicator(object):
                     '-ui', 'text',
                     '-repeat', 'watch',
                     '-batch']
-    SYNC_COMMAND = ['counter']
     GUI_COMMAND = "unison-gtk"
 
     ICON_WAIT = "icons/white.svg"
@@ -33,7 +32,8 @@ class Indicator(object):
     RES = [
         ('connected', r'Connected \[\/\/.*?\/(.*) -> .*\]'),
         ('looking', r'Looking for changes'),
-        ('nothing', r'Nothing to do: .* not changed since last sync.'),
+        #('nothing', r'Nothing to do: .* not changed since last sync.'),
+        ('nothing', r'Reconciling changes'),
         ('propagating', r'.*arted propagating changes at ([\d:]+).* on (.*)'),
         ('sync_complete', r'(Synchronization complete at [:\d]+)\s*\((.*)\)'),
         ('end_file', r'\[END\]\s+(\w+)ing\s+(.*)'),
@@ -141,7 +141,7 @@ class Indicator(object):
             standard_error=True)
 
         GLib.child_watch_add(pid, self._on_done)
-        GLib.io_add_watch(os.fdopen(iderr, 'r'), GLib.IO_IN, self._on_stderr)
+        GLib.io_add_watch(os.fdopen(iderr, 'r'), GLib.IO_IN | GLib.IO_PRI, self._on_stderr)
 
         return pid
 
@@ -172,12 +172,11 @@ class Indicator(object):
             os.kill(self.unison_pid, signal.SIGCONT)
             self.set_item_text(self.item_pause_resume, 'Pause Unison')
 
-
     # Parse Unison output
 
     def _on_stderr(self, fobj, cond):
         line = fobj.readline()
-        # print("stderr:", line, end='')
+        #print(line, end='')
         for k, v in self.RES:
             m = re.match(v, line)
             if m:
@@ -196,7 +195,7 @@ class Indicator(object):
                 if k == 'sync_complete':
                     self.set_message('Synchronization completed')
                     self.syncing_icon_stop()
-                    self.set_icon(self.ICON_WAIT)
+                    self.set_icon(self.ICON_GOOD)
                 if k == 'end_file':
                     self.add_file_to_list(self.VERBS[m.group(1)], m.group(2))
 
