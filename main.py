@@ -213,7 +213,7 @@ class Indicator(object):
         line = '[%s] %s: %s' % (time.strftime("%H:%M"), verb, fname)
 
         item = Gtk.MenuItem(line)
-        self.menu_recent_files.append(item)
+        self.menu_recent_files.prepend(item)
 
         if len(self.menu_recent_files.get_children()) > 20:
             self.menu_recent_files.remove(
